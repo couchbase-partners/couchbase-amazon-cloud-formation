@@ -3,7 +3,7 @@
 formatDataDisk ()
 {
   DEVICE=/dev/sdk
-  MOUNTPOINT=/mnt/datadisk
+  MOUNTPOINT=/data/couchbase
 
   echo "Creating the filesystem."
   mkfs -t ext4 ${DEVICE}

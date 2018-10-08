@@ -116,8 +116,8 @@ do
   output=`./couchbase-cli node-init \
     --cluster=$nodePublicDNS \
     --node-init-hostname=$nodePublicDNS \
-    --node-init-data-path=/mnt/datadisk/data \
-    --node-init-index-path=/mnt/datadisk/index \
+    --node-init-data-path=/data/couchbase/data \
+    --node-init-index-path=/data/couchbase/index \
     --user=$adminUsername \
     --pass=$adminPassword`
   echo node-init output \'$output\'

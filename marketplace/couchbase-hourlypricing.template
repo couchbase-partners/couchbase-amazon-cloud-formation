@@ -197,7 +197,7 @@
                 "echo \"Formatting disk...\"\n",
 
                 "DEVICE=/dev/sdk\n",
-                "MOUNTPOINT=/mnt/datadisk\n",
+                "MOUNTPOINT=/data/couchbase\n",
 
                 "echo \"Creating the filesystem.\"\n",
                 "mkfs -t ext4 ${DEVICE}\n",
@@ -294,8 +294,8 @@
                 "  output=`./couchbase-cli node-init \\\n",
                 "    --cluster=$nodePublicDNS \\\n",
                 "    --node-init-hostname=$nodePublicDNS \\\n",
-                "    --node-init-data-path=/mnt/datadisk/data \\\n",
-                "    --node-init-index-path=/mnt/datadisk/index \\\n",
+                "    --node-init-data-path=/data/couchbase/data \\\n",
+                "    --node-init-index-path=/data/couchbase/index \\\n",
                 "    --user=$adminUsername \\\n",
                 "    --pass=$adminPassword`\n",
                 "  echo node-init output \\'$output\\'\n",
