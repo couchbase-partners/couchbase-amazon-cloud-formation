@@ -1,0 +1,371 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Couchbase Sync Gateway - Hourly Pricing with Server on Amazon Linux 2",
+  "Mappings": {
+      "CouchbaseSyncGateway": {
+          "ap-northeast-1": {
+              "HourlyPricing": "ami-07d982ffa106f59a3"
+          },
+          "ap-northeast-2": {
+              "HourlyPricing": "ami-0dae8c09074e87fee"
+          },
+          "ap-south-1": {
+              "HourlyPricing": "ami-0c723d200acb42479"
+          },
+          "ap-southeast-1": {
+              "HourlyPricing": "ami-02212aa73bef0afe1"
+          },
+          "ap-southeast-2": {
+              "HourlyPricing": "ami-0973f3b647f4820d7"
+          },
+          "ca-central-1": {
+              "HourlyPricing": "ami-0f1d7ef2faed58108"
+          },
+          "eu-central-1": {
+              "HourlyPricing": "ami-082ad5e996ab14c5e"
+          },
+          "eu-west-1": {
+              "HourlyPricing": "ami-0bd743559d1ae9744"
+          },
+          "eu-west-2": {
+              "HourlyPricing": "ami-0a376fa1ef71f8305"
+          },
+          "sa-east-1": {
+              "HourlyPricing": "ami-01f91e48086035565"
+          },
+          "us-east-1": {
+              "HourlyPricing": "ami-09fdfb17cf362fc01"
+          },
+          "us-east-2": {
+              "HourlyPricing": "ami-09ae177b8bdddd332"
+          },
+          "us-west-1": {
+              "HourlyPricing": "ami-0c43758f2a30dfec1"
+          },
+          "us-west-2": {
+              "HourlyPricing": "ami-0decd93bea08de6fc"
+          }
+      }
+  },
+  "Parameters": {
+      "SyncGatewayInstanceCount": {
+          "Description": "Number of Couchbase Sync Gateway Nodes",
+          "Type": "Number",
+          "Default": 1
+      },
+      "SyncGatewayVersion": {
+          "Description": "Couchbase Sync Gateway Version",
+          "Type": "String",
+          "Default": "2.8.0",
+          "AllowedValues": [
+              "2.8.0",
+              "2.7.3",
+              "2.7.2",
+              "2.7.1",
+              "2.7.0",
+              "2.6.0",
+              "2.5.0",
+              "2.1.3",
+              "2.1.2",
+              "2.1.1",
+              "2.1.0",
+              "2.0.0",
+              "2.0.2",
+              "2.0.3",
+              "1.5.1",
+              "1.5.2"
+          ]
+      },
+      "SyncGatewayInstanceType": {
+          "Description": "Instance type for Couchbase Sync Gateway Nodes",
+          "Type": "String",
+          "Default": "m5.large",
+          "AllowedValues": [
+              "c5n.xlarge",
+              "t3.medium",
+              "m4.large",
+              "m4.xlarge",
+              "m4.2xlarge",
+              "m5.large",
+              "m5.xlarge",
+              "m5.2xlarge",
+              "c4.large",
+              "c4.xlarge",
+              "c4.2xlarge",
+              "c4.4xlarge",
+              "c5.large",
+              "c5.xlarge",
+              "c5.2xlarge",
+              "c5.4xlarge",
+              "r5.large",
+              "r5.xlarge",
+              "r4.large",
+              "r4.xlarge",
+              "m5a.large",
+              "m5a.xlarge",
+              "m5a.2xlarge",
+              "r5a.large",
+              "r5a.xlarge",
+              "i3.large",
+              "i3.xlarge"
+          ]
+      },
+      "Username": {
+          "Description": "Username for Couchbase administrator",
+          "Type": "String"
+      },
+      "Password": {
+          "Description": "Password for Couchbase administrator",
+          "Type": "String",
+          "NoEcho": true
+      },
+      "KeyName": {
+          "Description": "Name of an existing EC2 KeyPair",
+          "Type": "AWS::EC2::KeyPair::KeyName"
+      },
+      "SSHCIDR": {
+          "Description": "The CIDR to give access to for SSH",
+          "Type": "String",
+          "MinLength": 9,
+          "MaxLength": 18,
+          "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+          "ConstraintDescription": "must be a valid CIDR range of the form x.x.x.x/x."
+      }
+  },
+  "Resources": {
+      "SyncGatewayAutoScalingGroup": {
+          "Type": "AWS::AutoScaling::AutoScalingGroup",
+          "Properties": {
+              "AvailabilityZones": {
+                  "Fn::GetAZs": ""
+              },
+              "LaunchConfigurationName": {
+                  "Ref": "SyncGatewayLaunchConfiguration"
+              },
+              "MinSize": 0,
+              "MaxSize": 100,
+              "DesiredCapacity": {
+                  "Ref": "SyncGatewayInstanceCount"
+              }
+          }
+      },
+      "SyncGatewayLaunchConfiguration": {
+          "Type": "AWS::AutoScaling::LaunchConfiguration",
+          "Properties": {
+              "ImageId": {
+                  "Fn::FindInMap": [
+                      "CouchbaseSyncGateway",
+                      {
+                          "Ref": "AWS::Region"
+                      },
+                      "HourlyPricing"
+                  ]
+              },
+              "InstanceType": {
+                  "Ref": "SyncGatewayInstanceType"
+              },
+              "SecurityGroups": [
+                  {
+                      "Ref": "CouchbaseSecurityGroup"
+                  }
+              ],
+              "KeyName": {
+                  "Ref": "KeyName"
+              },
+              "EbsOptimized": true,
+              "IamInstanceProfile": {
+                  "Ref": "CouchbaseInstanceProfile"
+              },
+              "BlockDeviceMappings": [
+                  {
+                      "DeviceName": "/dev/xvda",
+                      "Ebs": {
+                          "DeleteOnTermination": true
+                      }
+                  }
+              ],
+              "UserData": {
+                  "Fn::Base64": {
+                      "Fn::Join": [
+                          "",
+                          [
+                              "#!/bin/bash\n",
+                              "echo 'Running startup script...'\n",
+                              "version=",
+                              {
+                                  "Ref": "SyncGatewayVersion"
+                              },
+                              "\n",
+                              "stackName=",
+                              {
+                                  "Ref": "AWS::StackName"
+                              },
+                              "\n",
+                              "echo \"Installing Couchbase Sync Gateway...\"\n",
+                              "wget https://packages.couchbase.com/releases/couchbase-sync-gateway/${version}/couchbase-sync-gateway-enterprise_${version}_x86_64.rpm\n",
+                              "rpm --install couchbase-sync-gateway-enterprise_${version}_x86_64.rpm\n",
+                              "yum -y update\n",
+                              "yum -y install jq\n",
+                              "region=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document \\\n",
+                              "  | jq '.region'  \\\n",
+                              "  | sed 's/^\"\\(.*\\)\"$/\\1/' )\n",
+                              "instanceID=$(curl -s http://169.254.169.254/latest/dynamic/instance-identity/document \\\n",
+                              "  | jq '.instanceId' \\\n",
+                              "  | sed 's/^\"\\(.*\\)\"$/\\1/' )\n",
+                              "echo \"Using the settings:\"\n",
+                              "echo stackName \\'$stackName\\'\n",
+                              "echo region \\'$region\\'\n",
+                              "echo instanceID \\'$instanceID\\'\n",
+                              "aws ec2 create-tags \\\n",
+                              "  --region ${region} \\\n",
+                              "  --resources ${instanceID} \\\n",
+                              "  --tags Key=Name,Value=${stackName}-SyncGateway\n",
+                              "file=\"/opt/sync_gateway/etc/sync_gateway.json\"\n",
+                              "echo '\n",
+                              "{\n",
+                              "  \"interface\": \"0.0.0.0:4984\",\n",
+                              "  \"adminInterface\": \"0.0.0.0:4985\",\n",
+                              "  \"log\": [\"*\"]\n",
+                              "}\n",
+                              "' > ${file}\n",
+                              "chmod 755 ${file}\n",
+                              "chown sync_gateway ${file}\n",
+                              "chgrp sync_gateway ${file}\n",
+                              "# Need to restart to load the changes\n",
+                              "service sync_gateway stop\n",
+                              "service sync_gateway start\n"
+                          ]
+                      ]
+                  }
+              }
+          }
+      },
+      "CouchbaseInstanceProfile": {
+          "Type": "AWS::IAM::InstanceProfile",
+          "Properties": {
+              "Roles": [
+                  {
+                      "Ref": "CouchbaseRole"
+                  }
+              ]
+          }
+      },
+      "CouchbaseRole": {
+          "Type": "AWS::IAM::Role",
+          "Properties": {
+              "AssumeRolePolicyDocument": {
+                  "Version": "2012-10-17",
+                  "Statement": [
+                      {
+                          "Effect": "Allow",
+                          "Principal": {
+                              "Service": [
+                                  "ec2.amazonaws.com"
+                              ]
+                          },
+                          "Action": [
+                              "sts:AssumeRole"
+                          ]
+                      }
+                  ]
+              },
+              "Policies": [
+                  {
+                      "PolicyName": "CouchbasePolicy",
+                      "PolicyDocument": {
+                          "Version": "2012-10-17",
+                          "Statement": [
+                              {
+                                  "Effect": "Allow",
+                                  "Action": [
+                                      "ec2:CreateTags",
+                                      "ec2:DescribeTags",
+                                      "ec2:DescribeInstances",
+                                      "autoscaling:DescribeAutoScalingGroups"
+                                  ],
+                                  "Resource": "*"
+                              }
+                          ]
+                      }
+                  }
+              ]
+          }
+      },
+      "CouchbaseSecurityGroup": {
+          "Type": "AWS::EC2::SecurityGroup",
+          "Properties": {
+              "GroupDescription": "Enable SSH and Couchbase Ports",
+              "SecurityGroupIngress": [
+                  {
+                      "IpProtocol": "tcp",
+                      "FromPort": 22,
+                      "ToPort": 22,
+                      "CidrIp": {
+                          "Ref": "SSHCIDR"
+                      }
+                  },
+                  {
+                      "IpProtocol": "tcp",
+                      "FromPort": 4369,
+                      "ToPort": 4369,
+                      "CidrIp": "0.0.0.0/0"
+                  },
+                  {
+                      "IpProtocol": "tcp",
+                      "FromPort": 4984,
+                      "ToPort": 4985,
+                      "CidrIp": "0.0.0.0/0"
+                  },
+                  {
+                      "IpProtocol": "tcp",
+                      "FromPort": 8091,
+                      "ToPort": 8096,
+                      "CidrIp": "0.0.0.0/0"
+                  },
+                  {
+                      "IpProtocol": "tcp",
+                      "FromPort": 9100,
+                      "ToPort": 9105,
+                      "CidrIp": "0.0.0.0/0"
+                  },
+                  {
+                      "IpProtocol": "tcp",
+                      "FromPort": 9110,
+                      "ToPort": 9122,
+                      "CidrIp": "0.0.0.0/0"
+                  },
+                  {
+                      "IpProtocol": "tcp",
+                      "FromPort": 9130,
+                      "ToPort": 9130,
+                      "CidrIp": "0.0.0.0/0"
+                  },
+                  {
+                      "IpProtocol": "tcp",
+                      "FromPort": 9998,
+                      "ToPort": 9999,
+                      "CidrIp": "0.0.0.0/0"
+                  },
+                  {
+                      "IpProtocol": "tcp",
+                      "FromPort": 11207,
+                      "ToPort": 11215,
+                      "CidrIp": "0.0.0.0/0"
+                  },
+                  {
+                      "IpProtocol": "tcp",
+                      "FromPort": 18091,
+                      "ToPort": 18096,
+                      "CidrIp": "0.0.0.0/0"
+                  },
+                  {
+                      "IpProtocol": "tcp",
+                      "FromPort": 21100,
+                      "ToPort": 21299,
+                      "CidrIp": "0.0.0.0/0"
+                  }
+              ]
+          }
+      }
+  }
+}
