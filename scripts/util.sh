@@ -241,7 +241,7 @@ formatDataDisk ()
   mkfs -t ext4 ${DEVICE} #TODO: change to xfs and other settings
 
   echo "Updating fstab"
-  LINE="${DEVICE}\t${MOUNTPOINT}\text4\tdefaults,nofail\t0\t2"
+  LINE="${DEVICE}\t${MOUNTPOINT}\text4\tdefaults,noatime,nofail\t0\t2"
   echo -e ${LINE} >> /etc/fstab
 
   echo "Mounting the disk"
